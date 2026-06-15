@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Система сканирования</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: #0a0a0c;
+            color: #00ff66;
+            font-family: 'Courier New', Courier, monospace;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            overflow: hidden;
+            padding: 20px;
+        }
+
+        .terminal {
+            background: rgba(15, 15, 20, 0.95);
+            border: 1px solid #00ff66;
+            border-radius: 8px;
+            padding: 30px;
+            width: 100%;
+            max-width: 550px;
+            box-shadow: 0 0 20px rgba(0, 255, 102, 0.15);
+            position: relative;
+        }
+
+        .terminal-header {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 25px;
+            border-bottom: 1px solid rgba(0, 255, 102, 0.2);
+            padding-bottom: 10px;
+        }
+
+        .dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #ff5f56;
+        }
+        .dot:nth-child(2) { background: #ffbd2e; }
+        .dot:nth-child(3) { background: #27c93f; }
+
+        .line {
+            margin-bottom: 12px;
+            font-size: 15px;
+            line-height: 1.5;
+            white-space: pre-wrap;
+        }
+
+        .blink {
+            animation: blinker 1s linear infinite;
+        }
+
+        @keyframes blinker {
+            50% { opacity: 0; }
+        }
+
+        .troll-message {
+            margin-top: 30px;
+            padding-top: 15px;
+            border-top: 1px dotted #00ff66;
+            color: #ff3366;
+            font-size: 22px;
+            font-weight: bold;
+            text-align: center;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            text-shadow: 0 0 10px rgba(255, 51, 102, 0.5);
+            display: none;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="terminal">
+        <div class="terminal-header">
+            <div class="dot"></div>
+            <div class="dot"></div>
+            <div class="dot"></div>
+        </div>
+        
+        <div id="output">
+            <div class="line">> Инициализация протокола проверки...</div>
+        </div>
+        
+        <div id="troll" class="troll-message">
+            Затроллен, толстый!
+        </div>
+    </div>
+
+    <script>
+        const output = document.getElementById('output');
+        const troll = document.getElementById('troll');
+
+        // Функция для симуляции печати текста
+        function addLine(text, delay) {
+            return new Promise((resolve) => {
+                setTimeout(() => {
+                    const div = document.createElement('div');
+                    div.className = 'line';
+                    div.innerHTML = `> ${text}`;
+                    output.appendChild(div);
+                    resolve();
+                }, delay);
+            });
+        }
+
+        async function startScan() {
+            await addLine("Установление безопасного соединения...", 800);
+            await addLine("Запрос данных сетевого интерфейса...", 1000);
+
+            try {
+                // Получаем данные о текущем пользователе через открытый API
+                const response = await fetch('https://ipapi.co/json/');
+                if (!response.ok) throw new Error('Ошибка сети');
+                
+                const data = await response.json();
+
+                await addLine(`[УСПЕХ] IPv4-адрес обнаружен: <span style="color: #fff; text-shadow: 0 0 5px #fff;">${data.ip}</span>`, 1200);
+                await addLine(`Провайдер: ${data.org || 'Неизвестно'}`, 800);
+                await addLine(`Регион: ${data.city || 'Неизвестно'}, ${data.country_name || ''}`, 800);
+                await addLine(`Координаты: Lat ${data.latitude} / Lon ${data.longitude}`, 600);
+                
+                // Финальный аккорд
+                setTimeout(() => {
+                    troll.style.display = 'block';
+                }, 1000);
+
+            } catch (error) {
+                // Если заблокировал блокировщик рекламы или нет интернета
+                await addLine("<span style="color: #ff3366;">[ОШИБКА] Не удалось обойти сетевой экран пользователя.</span>", 1000);
+                await addLine("Но магия вне хогвартса всё равно сработала.", 500);
+                setTimeout(() => {
+                    troll.style.display = 'block';
+                }, 1000);
+            }
+        }
+
+        // Запуск при загрузке страницы
+        window.onload = startScan;
+    </script>
+</body>
+</html>
+
