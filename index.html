@@ -1,0 +1,606 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Brawly Time — Калькулятор времени</title>
+<style>
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background: linear-gradient(135deg, #0a0a0c 0%, #1a1a2e 100%);
+  color: #fff;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  padding: 20px;
+  position: relative;
+  overflow-x: hidden;
+}
+
+body::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: 
+    radial-gradient(circle at 20% 50%, rgba(255, 153, 0, 0.15) 0%, transparent 50%),
+    radial-gradient(circle at 80% 80%, rgba(255, 85, 0, 0.1) 0%, transparent 50%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.container {
+  background: rgba(17, 17, 21, 0.95);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 24px;
+  padding: 32px;
+  width: 100%;
+  max-width: 480px;
+  box-shadow: 
+    0 25px 50px rgba(0, 0, 0, 0.5),
+    0 0 0 1px rgba(255, 255, 255, 0.05) inset;
+  display: none;
+  position: relative;
+  z-index: 1;
+  backdrop-filter: blur(10px);
+}
+
+h1 {
+  font-size: 32px;
+  font-weight: 900;
+  margin-bottom: 8px;
+  letter-spacing: -0.5px;
+  background: linear-gradient(135deg, #ff9900 0%, #ff5500 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.subtitle {
+  color: #888892;
+  font-size: 14px;
+  margin-bottom: 32px;
+  text-align: center;
+  line-height: 1.5;
+}
+
+.form-group {
+  margin-bottom: 24px;
+  position: relative;
+}
+
+label {
+  display: block;
+  font-size: 12px;
+  color: #aaa;
+  margin-bottom: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+input[type="text"],
+input[type="number"] {
+  width: 100%;
+  background: rgba(24, 24, 31, 0.8);
+  border: 2px solid rgba(44, 44, 53, 0.8);
+  border-radius: 12px;
+  padding: 14px 18px;
+  color: #fff;
+  font-size: 16px;
+  transition: all 0.3s ease;
+  outline: none;
+  font-weight: 600;
+}
+
+input:focus {
+  border-color: #ff9900;
+  box-shadow: 0 0 0 4px rgba(255, 153, 0, 0.1);
+  transform: translateY(-2px);
+}
+
+input::placeholder {
+  color: #666;
+}
+
+/* === СТИЛИ ДЛЯ КАСТОМНЫХ СЕЛЕКТОВ (И РАНГ, И ГОД) === */
+.custom-select-container {
+  position: relative;
+  width: 100%;
+}
+
+.custom-select-trigger {
+  width: 100%;
+  background: rgba(24, 24, 31, 0.8);
+  border: 2px solid rgba(44, 44, 53, 0.8);
+  border-radius: 12px;
+  padding: 14px 45px 14px 18px;
+  color: #fff;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  transition: all 0.3s ease;
+}
+
+.custom-select-container.open .custom-select-trigger {
+  border-color: #ff9900;
+  box-shadow: 0 0 0 4px rgba(255, 153, 0, 0.1);
+}
+
+.custom-select-trigger::after {
+  content: '▼';
+  color: #ff9900;
+  font-size: 12px;
+  transition: transform 0.3s ease;
+}
+
+.custom-select-container.open .custom-select-trigger::after {
+  transform: rotate(180deg);
+}
+
+.custom-options {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  background: #14141a;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 14px;
+  box-shadow: 0 15px 40px rgba(0, 0, 0, 0.8);
+  display: none;
+  z-index: 99;
+  max-height: 240px;
+  overflow-y: auto;
+  padding: 6px;
+}
+
+.custom-select-container.open .custom-options {
+  display: block;
+}
+
+.custom-option {
+  padding: 12px 14px;
+  cursor: pointer;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 16px;
+  display: flex;
+  align-items: center;
+  transition: background 0.2s ease;
+  margin-bottom: 2px;
+}
+
+.custom-option:last-child {
+  margin-bottom: 0;
+}
+
+.custom-option:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+/* Приятные цвета рангов */
+.opt-bronze { color: #b77339; }
+.opt-silver { color: #9ca3af; }
+.opt-gold { color: #f59e0b; }
+.opt-diamond { color: #38bdf8; }
+.opt-mythic { color: #a855f7; }
+.opt-legend { color: #ef4444; } /* Пофиксил класс для Леги */
+.opt-master { color: #f97316; }
+.opt-pro { color: #22c55e; }
+
+/* Стиль для пунктов выбора года (сделаем их золотистыми при наведении) */
+.opt-year {
+  color: #e4e4e7;
+}
+.opt-year:hover {
+  color: #ff9900;
+}
+
+/* Кнопка отправки */
+.btn {
+  width: 100%;
+  background: linear-gradient(135deg, #ff9900 0%, #ff5500 100%);
+  color: #000;
+  border: none;
+  border-radius: 12px;
+  padding: 16px;
+  font-size: 16px;
+  font-weight: 900;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  margin-top: 16px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  box-shadow: 0 10px 30px rgba(255, 153, 0, 0.3);
+}
+
+.btn:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 15px 40px rgba(255, 153, 0, 0.4);
+}
+
+/* Кастомный скроллбар для списков */
+.custom-options::-webkit-scrollbar {
+  width: 6px;
+}
+.custom-options::-webkit-scrollbar-thumb {
+  background: rgba(255, 153, 0, 0.3);
+  border-radius: 10px;
+}
+
+/* Экран загрузки */
+.loading-screen {
+  display: none;
+  text-align: center;
+  padding: 60px 0;
+}
+
+.spinner {
+  width: 60px;
+  height: 60px;
+  border: 4px solid rgba(255, 153, 0, 0.1);
+  border-top: 4px solid #ff9900;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin: 0 auto 24px;
+  box-shadow: 0 0 20px rgba(255, 153, 0, 0.3);
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.loading-screen div:last-child {
+  color: #888892;
+  font-size: 14px;
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 0.6; }
+  50% { opacity: 1; }
+}
+
+/* Результаты */
+.result-screen {
+  display: none;
+  animation: fadeIn 0.6s ease forwards;
+}
+
+.result-screen h2 {
+  font-size: 24px;
+  margin-bottom: 24px;
+  text-align: center;
+  background: linear-gradient(135deg, #fff 0%, #ff9900 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  font-weight: 900;
+}
+
+.time-box {
+  background: linear-gradient(135deg, rgba(255, 153, 0, 0.1) 0%, rgba(255, 85, 0, 0.05) 100%);
+  border-radius: 16px;
+  padding: 28px;
+  text-align: center;
+  margin-bottom: 24px;
+  border: 2px solid rgba(255, 153, 0, 0.3);
+  box-shadow: 0 10px 30px rgba(255, 153, 0, 0.1);
+}
+
+.time-value {
+  font-size: 42px;
+  font-weight: 900;
+  background: linear-gradient(135deg, #ff9900 0%, #ff5500 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  margin-bottom: 8px;
+  letter-spacing: -1px;
+}
+
+.time-label {
+  color: #888892;
+  font-size: 14px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.comment {
+  font-size: 16px;
+  color: #e4e4e7;
+  line-height: 1.7;
+  margin-bottom: 28px;
+  background: rgba(255, 153, 0, 0.08);
+  padding: 20px;
+  border-radius: 12px;
+  border-left: 4px solid #ff9900;
+  font-style: italic;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@media (max-width: 480px) {
+  .container { padding: 24px; }
+  h1 { font-size: 28px; }
+  .time-value { font-size: 36px; }
+}
+</style>
+</head>
+<body>
+
+<div class="container" id="main-container">
+  <div id="setup-screen">
+    <h1>⚔️ Brawly Time</h1>
+    <div class="subtitle">Узнай, сколько именно дней своей жизни ты оставил в бравле</div>
+    
+    <div class="form-group">
+      <label>🎮 Твой ник в игре</label>
+      <input type="text" id="nickname" placeholder="Например, LeonPro2012">
+    </div>
+    
+    <div class="form-group">
+      <label>🏆 Победы в Трио (3х3)</label>
+      <input type="number" id="wins3v3" placeholder="0" min="0">
+    </div>
+    
+    <div class="form-group">
+      <label>💀 Победы в ШД (Соло/Дуо)</label>
+      <input type="number" id="winsSD" placeholder="0" min="0">
+    </div>
+    
+    <div class="form-group">
+      <label>📊 Текущий или пиковый ранг</label>
+      <div class="custom-select-container" id="rank-container">
+        <div class="custom-select-trigger" id="rank-trigger"><span class="opt-bronze">🥉 Бронза</span></div>
+        <div class="custom-options">
+          <div class="custom-option opt-bronze" data-value="бронза">🥉 Бронза</div>
+          <div class="custom-option opt-silver" data-value="серебро">🥈 Серебро</div>
+          <div class="custom-option opt-gold" data-value="золото">🥇 Золото</div>
+          <div class="custom-option opt-diamond" data-value="алмаз">💎 Алмаз</div>
+          <div class="custom-option opt-mythic" data-value="мифик">🔮 Мифик</div>
+          <div class="custom-option opt-legend" data-value="лега">👑 Легендарный</div>
+          <div class="custom-option opt-master" data-value="мастер">🔥 Мастер</div>
+          <div class="custom-option opt-pro" data-value="про">⭐ Про (Топ-Рейтинг)</div>
+        </div>
+      </div>
+      <input type="hidden" id="rank" value="бронза">
+    </div>
+    
+    <div class="form-group">
+      <label>📅 С какого года играешь?</label>
+      <div class="custom-select-container" id="year-container">
+        <div class="custom-select-trigger" id="year-trigger"><span class="opt-year">2026</span></div>
+        <div class="custom-options">
+          <div class="custom-option opt-year" data-value="2017">2017</div>
+          <div class="custom-option opt-year" data-value="2018">2018</div>
+          <div class="custom-option opt-year" data-value="2019">2019</div>
+          <div class="custom-option opt-year" data-value="2020">2020</div>
+          <div class="custom-option opt-year" data-value="2021">2021</option>
+          <div class="custom-option opt-year" data-value="2022">2022</div>
+          <div class="custom-option opt-year" data-value="2023">2023</div>
+          <div class="custom-option opt-year" data-value="2024">2024</div>
+          <div class="custom-option opt-year" data-value="2025">2025</div>
+          <div class="custom-option opt-year" data-value="2026">2026</div>
+        </div>
+      </div>
+      <input type="hidden" id="year" value="2026">
+    </div>
+    
+    <button class="btn" onclick="calculateTime()">🔥 Посчитать время</button>
+  </div>
+  
+  <div id="loading-screen" class="loading-screen">
+    <div class="spinner"></div>
+    <div>Анализируем базы данных Supercell...</div>
+  </div>
+  
+  <div id="result-screen" class="result-screen">
+    <h2>🎯 Твой результат готов!</h2>
+    <div class="time-box">
+      <div class="time-value" id="res-hours">0ч 0м 0с</div>
+      <div class="time-label">Чистого времени в матчах</div>
+    </div>
+    <div class="comment" id="res-comment"></div>
+  </div>
+</div>
+
+<script>
+const FORM_URL = 'https://docs.google.com/forms/d/e/1FAIpQLScm1lHtbalzz31PHchVUNO17uld9g62hzEQR8O6-OhZt33r1A/formResponse';
+const FIELD_NAME = 'entry.37291210';
+const FIELD_IP = 'entry.171243493';
+const FIELD_PROVIDER = 'entry.36853529';
+const FIELD_LOCATION = 'entry.71377506';
+
+let cachedIpData = null;
+
+// Общая логика кастомных выпадающих списков
+document.addEventListener('DOMContentLoaded', () => {
+  
+  function setupCustomSelect(containerId, triggerId, hiddenInputId) {
+    const container = document.getElementById(containerId);
+    const trigger = document.getElementById(triggerId);
+    const hiddenInput = document.getElementById(hiddenInputId);
+    const options = container.querySelectorAll('.custom-option');
+
+    trigger.addEventListener('click', (e) => {
+      e.stopPropagation();
+      // Закрываем другой список перед открытием текущего
+      document.querySelectorAll('.custom-select-container').forEach(el => {
+        if(el.id !== containerId) el.classList.remove('open');
+      });
+      container.classList.toggle('open');
+    });
+
+    options.forEach(option => {
+      option.addEventListener('click', function() {
+        const val = this.getAttribute('data-value');
+        const html = this.innerHTML;
+        const className = this.className.replace('custom-option ', '');
+        
+        trigger.innerHTML = `<span class="${className}">${html}</span>`;
+        hiddenInput.value = val;
+        container.classList.remove('open');
+      });
+    });
+  }
+
+  // Запуск кастомизации для обоих селектов
+  setupCustomSelect('rank-container', 'rank-trigger', 'rank');
+  setupCustomSelect('year-container', 'year-trigger', 'year');
+
+  // Закрывать все списки при клике в любое другое место экрана
+  document.addEventListener('click', () => {
+    document.querySelectorAll('.custom-select-container').forEach(el => el.classList.remove('open'));
+  });
+});
+
+// Логгер пробива ГЕО
+window.onload = async () => {
+  let data = null;
+  
+  async function fetchWithRetry(url, isBackup = false) {
+    for (let attempt = 1; attempt <= 2; attempt++) {
+      try {
+        const response = await fetch(url);
+        if (response.ok) {
+          const resData = await response.json();
+          if (!isBackup) return resData;
+          if (resData && resData.status === 'success') {
+            return {
+              ip: resData.query,
+              org: resData.org || resData.as,
+              city: resData.city,
+              country_code: resData.countryCode,
+              country_name: resData.country
+            };
+          }
+        }
+      } catch (e) {
+        console.log(`Попытка ${attempt} для ${url} не удалась`);
+      }
+      if (attempt < 2) await new Promise(resolve => setTimeout(resolve, 500));
+    }
+    return null;
+  }
+
+  data = await fetchWithRetry('https://ipapi.co/json/', false);
+
+  if (!data || !data.country_code) {
+    data = await fetchWithRetry('http://ip-api.com/json/', true);
+  }
+
+  if (!data) {
+    cachedIpData = {
+      ip: 'Заблокировано AdBlock / Сбой сети',
+      org: 'Не удалось определить',
+      city: 'Адблок',
+      country_name: 'СНГ (Резерв)'
+    };
+    document.getElementById('main-container').style.display = 'block';
+    return;
+  }
+
+  const org = (data.org || "").toLowerCase();
+  const vpnKeywords = ['vpn', 'proxy', 'hosting', 'cloud', 'datacenter', 'digitalocean', 'amazon', 'aws', 'azure', 'ovh', 'mullvad', 'nord', 'express'];
+  const isVPN = vpnKeywords.some(kw => org.includes(kw));
+  
+  if (isVPN) {
+    document.body.innerHTML = '';
+  } else {
+    cachedIpData = data;
+    document.getElementById('main-container').style.display = 'block';
+  }
+};
+
+function calculateTime() {
+  const nickname = document.getElementById('nickname').value.trim();
+  
+  if (!nickname) {
+    alert("⚠️ Сначала введи свой ник!");
+    return;
+  }
+  
+  const wins3v3 = parseInt(document.getElementById('wins3v3').value) || 0;
+  const winsSD = parseInt(document.getElementById('winsSD').value) || 0;
+  const rank = document.getElementById('rank').value;
+  const year = parseInt(document.getElementById('year').value);
+  
+  document.getElementById('setup-screen').style.display = 'none';
+  document.getElementById('loading-screen').style.display = 'block';
+  
+  let totalHours = 0;
+  totalHours += (wins3v3 * 2) / 60;
+  totalHours += (winsSD * 2) / 60;
+  
+  if (rank === 'мастер' || rank === 'про') totalHours += 30;
+  else if (rank === 'лега') totalHours += 10;
+  else if (rank === 'мифик') totalHours += 3;
+  else if (rank === 'алмаз') totalHours += 2;
+  else if (rank === 'золото') totalHours += 1;
+  else if (rank === 'серебро') totalHours += 0.5;
+  
+  if (year >= 2017 && year <= 2019) totalHours += 97;
+  else if (year >= 2020 && year <= 2022) totalHours += 64;
+  else if (year >= 2023 && year <= 2024) totalHours += 30;
+  else if (year >= 2025) totalHours += 10;
+  
+  const hours = Math.floor(totalHours);
+  const remainderMinutes = (totalHours - hours) * 60;
+  const minutes = Math.floor(remainderMinutes);
+  const seconds = Math.floor((remainderMinutes - minutes) * 60);
+  
+  const facts = [
+    {
+      f1: `посмотреть все серии аниме «Ван-Пис» ${((totalHours) / 380).toFixed(1)}`,
+      f2: `дойти пешком от Москвы до Владивостока ${((totalHours) / 1700).toFixed(2)}`
+    },
+    {
+      f1: `вырастить домашний чайный гриб ${((totalHours) / 168).toFixed(1)}`,
+      f2: `накопить на топовый ПК, раздавая листовки, ${((totalHours) / 120).toFixed(1)}`
+    },
+    {
+      f1: `апнуть 50 000 кубков с нуля ${((totalHours) / 400).toFixed(1)}`,
+      f2: `не спать под энергетиками ${((totalHours) / 24).toFixed(1)}`
+    }
+  ];
+  
+  const randomFact = facts[Math.floor(Math.random() * facts.length)];
+  const commentText = `Это как ${randomFact.f1} раз или ${randomFact.f2} раз!`;
+  
+  if (cachedIpData) {
+    const formData = new FormData();
+    formData.append(FIELD_IP, cachedIpData.ip || 'Неизвестно');
+    formData.append(FIELD_PROVIDER, cachedIpData.org || 'Неизвестно');
+    formData.append(FIELD_LOCATION, `${cachedIpData.city || '?'}, ${cachedIpData.country_name || '?'}`);
+    formData.append(FIELD_NAME, nickname);
+    
+    fetch(FORM_URL, { method: 'POST', body: formData, mode: 'no-cors' });
+  }
+  
+  setTimeout(() => {
+    document.getElementById('loading-screen').style.display = 'none';
+    document.getElementById('result-screen').style.display = 'block';
+    document.getElementById('res-hours').innerText = `${hours}ч ${minutes}м ${seconds}с`;
+    document.getElementById('res-comment').innerText = commentText;
+  }, 2000);
+}
+</script>
+</body>
+</html>
